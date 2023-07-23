@@ -1,3 +1,4 @@
+// catch all btns through which we can create new alarm element
 const addNewBtn = document.querySelectorAll(".add-new-alarm");
 
 // Modal opening and closing logic
@@ -7,9 +8,35 @@ const overlay = document.querySelector("#overlay");
 
 // the id for alarms
 let id = 1;
+
+// these variables are used to removeEventListener after modal is opened for one alarm obj
 let okBtnListener;
 let cancelBtnListener;
 
+// audio object
+const audio = new Audio();
+
+// all the input fields
+const hoursInput = document.querySelector("#hours");
+const minutesInput = document.querySelector("#minutes");
+const soundName = document.querySelector("#sound-select");
+const gridDiv = document.querySelector(".grid");
+const am = document.querySelector("#AM");
+const pm = document.querySelector("#PM");
+
+// modal action btns
+const okBtn = document.querySelector("#ok");
+const cancelBtn = document.querySelector("#close");
+
+// sound names
+const soundNames = {
+  first: "Waves",
+  second: "Ocean",
+  third: "Winter",
+  fourth: "Joy",
+};
+
+// add event listener to "Add alarm" btns
 addNewBtn.forEach((val) =>
   val.addEventListener("click", () => {
     console.log("creating new alarm");
@@ -27,7 +54,7 @@ addNewBtn.forEach((val) =>
   })
 );
 
-// show the overlay and the dialog
+// openModal opens the UI modal
 const openModal = () => {
   console.log("opening modal");
   modalDialog.classList.remove("hidden");
@@ -42,34 +69,26 @@ const openModal = () => {
   });
 };
 
-// hide the overlay and the dialog
+// closeModal closes the modal
 const closeModal = () => {
   console.log("closing modal");
   modalDialog.classList.add("hidden");
   overlay.classList.add("hidden");
 };
 
-const hoursInput = document.querySelector("#hours");
-const minutesInput = document.querySelector("#minutes");
-const soundName = document.querySelector("#sound-select");
-const gridDiv = document.querySelector(".grid");
-const am = document.querySelector("#AM");
-const pm = document.querySelector("#PM");
-const okBtn = document.querySelector("#ok");
-const cancelBtn = document.querySelector("#close");
-
-// audio object
-const audio = new Audio();
-
+// playAudio plays the audio of selected sound
 const playAudio = (soundName) => {
-  audio.src = `./public/assets/audio/${soundName}.mp3`;
+  audio.src = `./public/assets/audio/${soundName}.wav`;
   audio.play();
 };
 
+// pauseAudio pauses the audio no matter the alarm
 const pauseAudio = () => {
   audio.pause();
 };
 
+// updateCountDown is called every second by each alarm to update and check the time remaining
+// called by every object and is binded to that object
 function updateCountDown(alarmTime) {
   const countdownPara = document.querySelector(
     `#col-${this.uniqueId} .count-down`
@@ -93,6 +112,7 @@ function updateCountDown(alarmTime) {
     .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 }
 
+// AlarmElement class handles the alarm features
 class AlarmElement {
   constructor() {
     openModal();
@@ -105,7 +125,7 @@ class AlarmElement {
     console.log("this id = ", this.uniqueId);
   }
 
-  // show error in p tag content
+  // showError shows error paragraph inside modal
   showError(content) {
     const message = document.querySelector(".error");
     message.classList.remove("hidden");
@@ -113,10 +133,11 @@ class AlarmElement {
     message.textContent = content;
   }
 
-  // ok button handler
+  // okhandler handles the check and creates new HTML element(alarm)
   okhandler() {
-    console.log(this);
-    // client side validation
+    // set the sound name
+    this.soundName = soundName.value;
+    // input validation
     if (parseInt(hours.value) > 12 || hours.value === "") {
       this.showError(`Please enter hours between 1 to 12`);
       return;
@@ -147,6 +168,7 @@ class AlarmElement {
       this.showError("Please set a time in the future");
       return;
     }
+
     // create a new alarm element
     this.colDiv = document.createElement("div");
     this.colDiv.classList.add("col");
@@ -169,7 +191,7 @@ class AlarmElement {
           <hr class="w-full h-1 mx-auto my-0.5 bg-gray-300 border-0 rounded" />
           <div class="sound flex justify-between text-base">
             <p>Sound:</p>
-            <p>Waves</p>
+            <p>${soundNames[this.soundName]}</p>
           </div>
           <hr class="w-full h-1 mx-auto my-0.5 bg-gray-300 border-0 rounded" />
           <div class="repeat flex justify-between text-base">
@@ -220,11 +242,13 @@ class AlarmElement {
     });
   }
 
+  // deleteAlarm deletes the alarm element from the HTML document
   deleteAlarm() {
     clearInterval(this.alarmInterval);
     this.colDiv.remove();
   }
 
+  // cancelHandler closes the modal and resets the input fields
   cancelHandler() {
     const message = document.querySelector(".error");
     hours.value = "";
