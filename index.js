@@ -57,14 +57,51 @@ const am = document.querySelector("#AM");
 const pm = document.querySelector("#PM");
 const okBtn = document.querySelector("#ok");
 const cancelBtn = document.querySelector("#close");
+
+// audio object
+const audio = new Audio();
+
+const playAudio = (soundName) => {
+  audio.src = `./public/assets/audio/${soundName}.mp3`;
+  audio.play();
+};
+
+const pauseAudio = () => {
+  audio.pause();
+};
+
+function updateCountDown(alarmTime) {
+  const countdownPara = document.querySelector(
+    `#col-${this.uniqueId} .count-down`
+  );
+  const now = new Date();
+  const timeRemaining = alarmTime - now;
+  if (timeRemaining <= 0) {
+    if (this.isSoundOn) playAudio(this.soundName);
+    clearInterval(this.alarmInterval);
+    alert("Time's up! Alarm triggered");
+    if (this.isSoundOn) pauseAudio();
+    this.deleteAlarm();
+    countdownPara.textContent = "00:00:00";
+    return;
+  }
+  const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+  const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+  countdownPara.textContent = `${hours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}
+
 class AlarmElement {
   constructor() {
     openModal();
     this.uniqueId = id++;
-    this.isOn = true;
+    this.isSoundOn = true;
     this.soundName = "first";
     this.alarmInterval;
     this.timeRemaining;
+    this.colDiv;
     console.log("this id = ", this.uniqueId);
   }
 
@@ -111,11 +148,11 @@ class AlarmElement {
       return;
     }
     // create a new alarm element
-    const colDiv = document.createElement("div");
-    colDiv.classList.add("col");
-    colDiv.id = `col-${this.uniqueId}`;
+    this.colDiv = document.createElement("div");
+    this.colDiv.classList.add("col");
+    this.colDiv.id = `col-${this.uniqueId}`;
     console.log(this);
-    colDiv.innerHTML =
+    this.colDiv.innerHTML =
       `<div class="min-w-[200px] min-h-[200px] flex flex-col border-solid border-2 border-grey-500 rounded-md px-2">
       <p class="text-center mb-4"><span class="text-5xl">${hours.value
         .toString()
@@ -141,40 +178,12 @@ class AlarmElement {
           </div>
           <hr class="w-full h-1 mx-auto my-0.5 bg-gray-300 border-0 rounded" />
           <div class="actions flex justify-between w-100 mt-4">
-            <i class="fa-solid fa-toggle-on fa-2xl"></i>
-            <i class="fa-solid fa-toggle-off fa-2xl hidden"></i>
-            <i class="fa-solid fa-trash fa-lg"></i>
+            <i class="fa-solid fa-toggle-on fa-2xl cursor-pointer"></i>
+            <i class="fa-solid fa-toggle-off fa-2xl hidden cursor-pointer"></i>
+            <i class="fa-solid fa-trash fa-lg cursor-pointer"></i>
           </div></div>`.trim();
-    gridDiv.lastElementChild.before(colDiv);
+    gridDiv.lastElementChild.before(this.colDiv);
     this.cancelHandler();
-
-    const updateCountDown = (alarmTime) => {
-      const countdownPara = document.querySelector(
-        `#col-${this.uniqueId} .count-down`
-      );
-      const now = new Date();
-      const timeRemaining = alarmTime - now;
-
-      if (timeRemaining <= 0) {
-        // this.playAudio();
-        clearInterval(this.alarmInterval);
-        alert("Time's up! Alarm triggered");
-        countdownPara.textContent = "00:00:00";
-        return;
-      }
-
-      const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
-      const minutes = Math.floor(
-        (timeRemaining % (1000 * 60 * 60)) / (1000 * 60)
-      );
-      const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
-
-      countdownPara.textContent = `${hours
-        .toString()
-        .padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds
-        .toString()
-        .padStart(2, "0")}`;
-    };
 
     this.alarmInterval = setInterval(
       updateCountDown.bind(this),
@@ -182,6 +191,38 @@ class AlarmElement {
       alarmTime
     );
     okBtn.removeEventListener("click", okBtnListener);
+
+    // add event listener to delete and sound on/off btn icons
+    const soundOffBtn = document.querySelector(
+      `#col-${this.uniqueId} .actions .fa-toggle-on`
+    );
+    const soundOnBtn = document.querySelector(
+      `#col-${this.uniqueId} .actions .fa-toggle-off`
+    );
+    const deleteAlarmBtn = document.querySelector(
+      `#col-${this.uniqueId} .actions .fa-trash`
+    );
+
+    soundOffBtn.addEventListener("click", () => {
+      soundOffBtn.classList.add("hidden");
+      soundOnBtn.classList.remove("hidden");
+      this.isSoundOn = false;
+    });
+    soundOnBtn.addEventListener("click", () => {
+      soundOnBtn.classList.add("hidden");
+      soundOffBtn.classList.remove("hidden");
+      this.isSoundOn = true;
+    });
+
+    deleteAlarmBtn.addEventListener("click", () => {
+      console.log("Deleting ", this.uniqueId);
+      this.deleteAlarm();
+    });
+  }
+
+  deleteAlarm() {
+    clearInterval(this.alarmInterval);
+    this.colDiv.remove();
   }
 
   cancelHandler() {
